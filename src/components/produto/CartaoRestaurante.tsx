@@ -22,7 +22,7 @@ export default function CartaoRestaurante() {
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
-  const limit = 100;
+  const limit = 10;
 
   const { adicionar, remover, itens } = useFavorito();
 
@@ -31,6 +31,9 @@ export default function CartaoRestaurante() {
 
     setLoading(true);
     try {
+      // Exibe a URL gerada para depuração
+      console.log(`API chamada: restaurants?offset=${offset}&limit=${limit}`);
+
       const response = await fetchResource<{ docs: Restaurant[] }>(
         `restaurants?offset=${offset}&limit=${limit}`
       );
@@ -43,11 +46,9 @@ export default function CartaoRestaurante() {
       });
 
       setOffset((prev) => prev + limit);
-
-      if (newRestaurants.length < limit) {
-        setHasMore(false);
-      }
+      setHasMore(newRestaurants.length === limit); // Só há mais itens se a quantidade recebida for igual ao limite
     } catch (err) {
+      console.error("Erro ao carregar restaurantes:", err);
       setError("Erro ao carregar restaurantes.");
     } finally {
       setLoading(false);
@@ -61,11 +62,11 @@ export default function CartaoRestaurante() {
   const handleScroll = () => {
     if (loading || !hasMore) return;
 
-    const bottom =
-      window.innerHeight + document.documentElement.scrollTop ===
-      document.documentElement.offsetHeight;
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const fullHeight = document.documentElement.scrollHeight;
 
-    if (bottom) {
+    if (scrollTop + windowHeight >= fullHeight - 100) {
       fetchRestaurants();
     }
   };
@@ -113,11 +114,10 @@ export default function CartaoRestaurante() {
           const imageSrc = restaurant.logo?.url || restaurant.image?.url || "/default-placeholder.jpg";
           return (
             <div key={restaurant._id} className="relative flex flex-col w-72 rounded-lg">
-              {/* Link para a página de detalhes */}
               <Link href={`${restaurant._id}`} className="relative">
                 <div className="relative w-72 h-36">
                   <Image
-                    src={imageSrc} // Usa o URL da imagem ou a imagem padrão
+                    src={imageSrc}
                     alt={restaurant.name}
                     fill
                     className="object-cover rounded-xl"
@@ -128,7 +128,6 @@ export default function CartaoRestaurante() {
                 </div>
               </Link>
 
-              {/* Botão de favorito */}
               <button
                 onClick={(event) => handleClickEstrela(event, restaurant)}
                 className="focus:outline-none absolute bottom-4 right-0"
